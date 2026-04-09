@@ -71,8 +71,8 @@ app.get('/api/data/source2', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
     console.log(`Backend is running on port ${PORT}`);
-    // Pre-fetch data on start
-    await dataService.refreshData();
+    // Realiza o primeiro carregamento em background para não travar a inicialização
+    dataService.refreshData().catch(e => console.error("Initial data fetch failed:", e.message));
 });
