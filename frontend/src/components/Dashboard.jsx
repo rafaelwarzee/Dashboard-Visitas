@@ -310,7 +310,7 @@ export default function Dashboard() {
     return (
         <div className="dashboard">
             <header className="dash-header">
-                <h1>Analytics Dashboard Evolution</h1>
+                <h1>Dashboard Análise de Visitas</h1>
                 <nav className="page-nav">
                     <button className={currentPage === 1 ? 'active' : ''} onClick={() => setCurrentPage(1)}>Página 1: Geral</button>
                     <button className={currentPage === 2 ? 'active' : ''} onClick={() => setCurrentPage(2)}>Página 2: Pedidos</button>
