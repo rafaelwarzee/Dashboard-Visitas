@@ -1,0 +1,17 @@
+{
+  "name": "analise-simulador",
+  "version": "1.0.0",
+  "description": "Este projeto tem o objetivo de entregar uma aplicação web robusta para análise e visualização de dados (uma experiência de Business Intelligence como o Power BI), com foco em análise \"Week-over-Week\", filtros e dashboards.",
+  "main": "fetch_csv.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
