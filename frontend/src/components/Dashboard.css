@@ -365,10 +365,13 @@ body {
 }
 
 .notes-display {
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--bg);
+    color: #000000;
     padding: 1rem;
     border-radius: 8px;
-    min-height: 80px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    max-height: 250px;
+    overflow-y: auto;
     font-family: var(--font-body);
     font-size: 0.9rem;
     line-height: 1.5;
@@ -381,12 +384,14 @@ body {
 }
 
 .notes-textarea {
-    background: rgba(0, 0, 0, 0.3);
-    color: var(--text);
+    background: var(--bg);
+    color: #000000;
     border: 1px solid var(--accent);
     padding: 1rem;
     border-radius: 8px;
     min-height: 80px;
+    max-height: 250px;
+    overflow-y: auto;
     font-family: var(--font-body);
     font-size: 0.9rem;
     outline: none;

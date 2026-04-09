@@ -31,7 +31,8 @@ Todas as variáveis de estilo estão centralizadas em `frontend/src/components/D
 | Item | Valor | Descrição |
 |---|---|---|
 | **Fundo** | `#d4d4d4` | Cor de fundo premium clara. |
-| **Texto** | `#0000FF` | Azul padrão para leitura e títulos. |
+| **Texto Geral** | `#0000FF` | Azul padrão para leitura e títulos. |
+| **Texto Insights**| `#000000` | Preto para máxima legibilidade em anotações. |
 | **Fonte Títulos** | `Samsung SS Head Bold` | Tipografia institucional para impacto. |
 | **Fonte Dados** | `Samsung SS Body Regular` | Tipografia para leitura de métricas. |
 
@@ -44,17 +45,51 @@ Para mudar as cores das linhas, barras ou eixos:
 
 ## 🚀 Guia de Manutenção e Deploy
 
-### Como atualizar o site (Workflow GitHub)
-Como o projeto está conectado ao **GitHub**, qualquer mudança salva no seu computador e enviada para a nuvem será publicada automaticamente no site segundos depois.
+## 🚀 Guia de Manutenção e Fluxo de Trabalho
 
-**Comandos no Terminal:**
+Como o projeto está automatizado via GitHub, qualquer alteração passa por um fluxo simples de três etapas: **Alterar -> Testar -> Publicar**.
+
+### 1. Como fazer alterações
+- **No Frontend**: Se quiser mudar cores, nomes ou gráficos, os arquivos principais estão em `frontend/src/components/`.
+- **No Backend**: Se quiser mudar a lógica de leitura das planilhas ou a senha de exclusão, edite `backend/src/dataService.js` ou `backend/src/index.js`.
+
+### 2. Como testar Localmente (Obrigatório antes de publicar)
+Antes de enviar para a web, verifique se tudo funciona no seu computador:
+
+1. **Abra o Backend**:
+   ```bash
+   cd backend
+   npm run dev  # Ele rodará em http://localhost:3001
+   ```
+2. **Abra o Frontend**:
+   ```bash
+   cd frontend
+   npm run dev  # Ele rodará em http://localhost:5173
+   ```
+3. Verifique no navegador se as mudanças ficaram como você queria.
+
+### 3. Como PUBLICAR na Web (Vercel + Railway)
+Assim que você confirmar que está tudo certo localmente, rode estes comandos na **raiz do projeto** (onde fica o arquivo README) para atualizar o site oficial:
+
 ```bash
+# 1. Prepara todos os arquivos alterados
 git add .
-git commit -m "Descricao da alteracao"
+
+# 2. Cria uma "etiqueta" com o que foi feito
+git commit -m "Explique aqui o que voce mudou"
+
+# 3. Envia para o GitHub (Isso ativa o deploy automático)
 git push
 ```
 
-### Configurações de Nuvem
+**O que acontece depois do `git push`?**
+- O **Railway** vai detectar que o código do backend mudou e vai reiniciar o servidor sozinho.
+- A **Vercel** vai detectar que o frontend mudou e vai recompilar o site.
+- Em cerca de 1 minuto, seu link oficial (`dashboard-visitas.vercel.app`) estará atualizado.
+
+---
+
+## 🏗️ Configurações de Nuvem (Referência)
 - **Railway**: O Backend precisa do **Root Directory** definido como `backend` e a variável `PORT` exposta.
 - **Vercel**: O Frontend precisa do **Root Directory** definido como `frontend` e da variável de ambiente `VITE_API_URL` apontando para o link do Railway (com o sufixo `/api`).
 
@@ -66,6 +101,7 @@ git push
 - **Dashboard Samsung**: Migração completa para a identidade visual oficial da marca.
 - **Sincronização de Insights**: Sistema de anotações persistentes no servidor para equipe.
 - **Deploy Web**: Migração do ambiente local para infraestrutura de escala (Vercel + Railway).
+- **Ajuste de Insights**: Otimização do box de anotações com fundo claro, texto preto e scrollbar.
 - **Refinamento Final**: Ajuste de títulos de navegador, cabeçalhos e otimização de performance.
 
 ---
