@@ -37,10 +37,13 @@ function normalizeKey(key) {
         .replace(/Ticket Mdio/g, 'Ticket Médio')
         .replace(/Ticket Médio/g, 'Ticket Médio')
         .replace(/Indice de Conversao/g, 'Indice de Conversao')
+        .replace(/Índice de Conversão \(Visitante UNICO\)/g, 'Indice de Conversao VU')
         .replace(/Índice de Conversão/g, 'Indice de Conversao')
         .replace(/Índice de conversão/g, 'Indice de Conversao')
         .replace(/ndice de converso/g, 'Indice de Conversao')
         .replace(/Receita \/ Visitas/g, 'Receita / Visitas')
+        .replace(/Receita \/ Visitante/g, 'Receita / Visitante')
+        .replace(/Visitantes únicos/g, 'Visitantes unicos')
         .replace(/Revenue \(purchase event\)/g, 'Revenue')
         .replace(/Divisão/g, 'Divisao')
         .replace(/Mês/g, 'Mes');
@@ -65,7 +68,7 @@ function processData() {
             for (let k in row) {
                 const normK = normalizeKey(k);
                 // We parse numeric values for known metric columns
-                if (['Visitas', 'Revenue', 'Order', 'Receita / Visitas', 'Ticket Médio', 'Indice de Conversao'].includes(normK)) {
+                if (['Visitas', 'Revenue', 'Order', 'Receita / Visitas', 'Ticket Médio', 'Indice de Conversao', 'Visitantes unicos', 'Indice de Conversao VU', 'Receita / Visitante'].includes(normK)) {
                     newRow[normK] = parseVal(row[k]);
                 } else {
                     newRow[normK] = row[k];

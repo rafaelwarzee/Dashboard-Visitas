@@ -103,6 +103,8 @@ git push
 - **Deploy Web**: Migração do ambiente local para infraestrutura de escala (Vercel + Railway).
 - **Ajuste de Insights**: Otimização do box de anotações com fundo claro, texto preto e scrollbar.
 - **Refinamento Final**: Ajuste de títulos de navegador, cabeçalhos e otimização de performance.
+- **Métricas de Visitantes Únicos**: Integração do volume de visitantes únicos ("VU"), conversão e rentabilidade ao nível de visitante, com suporte a projeção 2026.
+- **Isolamento On-Premise e Redesign**: Reestruturação do painel de controle (Slicer e Insights) e suporte nativo à execução focada em segurança da informação (rede corporativa blindada).
 
 ---
 

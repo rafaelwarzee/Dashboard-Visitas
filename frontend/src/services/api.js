@@ -19,13 +19,13 @@ export const fetchInsights = async () => {
     return res.data;
 };
 
-export const saveInsights = async (note) => {
-    const res = await api.post('/insights', { note });
+export const saveInsights = async (payload) => {
+    const res = await api.post('/insights', payload);
     return res.data;
 };
 
-export const deleteInsights = async (password) => {
+export const deleteInsights = async (password, pageKey) => {
     // Using query params for DELETE compatibility
-    const res = await api.delete('/insights', { params: { password } });
+    const res = await api.delete('/insights', { params: { password, pageKey } });
     return res.data;
 };

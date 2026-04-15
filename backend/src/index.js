@@ -17,10 +17,10 @@ const INSIGHTS_PATH = path.join(__dirname, 'insights.json');
 // Helper to read/write insights
 const getInsights = () => {
     try {
-        if (!fs.existsSync(INSIGHTS_PATH)) return { note: '' };
+        if (!fs.existsSync(INSIGHTS_PATH)) return { note1: '', note2: '', note3: '' };
         return JSON.parse(fs.readFileSync(INSIGHTS_PATH, 'utf8'));
     } catch (e) {
-        return { note: '' };
+        return { note1: '', note2: '', note3: '' };
     }
 };
 
@@ -33,17 +33,24 @@ app.get('/api/insights', (req, res) => {
 });
 
 app.post('/api/insights', (req, res) => {
-    const { note } = req.body;
-    saveInsights({ note });
+    const current = getInsights();
+    const updated = { ...current, ...req.body };
+    saveInsights(updated);
     res.json({ success: true });
 });
 
 app.delete('/api/insights', (req, res) => {
-    const { password } = req.query;
+    const { password, pageKey } = req.query;
     if (password !== '1234') {
         return res.status(401).json({ error: 'Senha incorreta' });
     }
-    saveInsights({ note: '' });
+    const current = getInsights();
+    if (pageKey) {
+        current[pageKey] = '';
+        saveInsights(current);
+    } else {
+        saveInsights({ note1: '', note2: '', note3: '' });
+    }
     res.json({ success: true });
 });
 

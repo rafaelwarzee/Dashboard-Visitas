@@ -6,8 +6,7 @@
 
 @font-face {
     font-family: 'Samsung SS Head Bold';
-    src: url('/fonts/SamsungSSHead Bold.woff2') format('woff2'),
-        url('/fonts/SamsungSSHead-Bold.ttf') format('truetype');
+    src: url('/fonts/SamsungSSHead-Bold.ttf') format('truetype');
     font-weight: bold;
     font-style: normal;
 }

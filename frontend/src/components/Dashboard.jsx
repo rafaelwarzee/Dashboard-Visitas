@@ -48,14 +48,17 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
-    
+
     const [startWeek, setStartWeek] = useState('0');
     const [endWeek, setEndWeek] = useState('52');
     const [selectedYears, setSelectedYears] = useState(new Set(YEARS));
 
-    // Insights state
-    const [note, setNote] = useState('');
+    // Insights state per page
+    const [notesData, setNotesData] = useState({ note1: '', note2: '', note3: '' });
     const [isEditingNote, setIsEditingNote] = useState(false);
+
+    const currentNoteKey = `note${currentPage}`;
+    const currentNoteVal = notesData[currentNoteKey] || '';
 
     useEffect(() => {
         async function loadData() {
@@ -66,7 +69,11 @@ export default function Dashboard() {
                     fetchInsights()
                 ]);
                 setData(dashRes);
-                setNote(insightRes.note || '');
+                setNotesData({
+                    note1: insightRes.note1 || '',
+                    note2: insightRes.note2 || '',
+                    note3: insightRes.note3 || ''
+                });
             } catch (e) {
                 setError('Failed to fetch data');
             } finally {
@@ -96,23 +103,28 @@ export default function Dashboard() {
         const tab25 = getTabName('Total CE_MX ', '2025');
         const arr26 = data[tab26] || [];
         const arr25 = data[tab25] || [];
-        
+
         let sum26 = 0, sum25 = 0;
+        let vuSum26 = 0, vuSum25 = 0;
         let totalOrder = 0;
         let totalRevenue = 0;
-        
+
         let actualStart = parseInt(startWeek);
         let actualEnd = parseInt(endWeek);
-        
-        for(let i=actualStart; i<=actualEnd; i++) {
+
+        for (let i = actualStart; i <= actualEnd; i++) {
             sum26 += parseNumber(arr26[i]?.Visitas);
             sum25 += parseNumber(arr25[i]?.Visitas);
+            vuSum26 += parseNumber(arr26[i]?.['Visitantes unicos']);
+            vuSum25 += parseNumber(arr25[i]?.['Visitantes unicos']);
             totalOrder += parseNumber(arr26[i]?.Order);
             totalRevenue += parseNumber(arr26[i]?.Revenue);
         }
-        
+
         const diff = sum26 - sum25;
         const pct = sum25 > 0 ? (diff / sum25) * 100 : 0;
+        const vuDiff = vuSum26 - vuSum25;
+        const vuPct = vuSum25 > 0 ? (vuDiff / vuSum25) * 100 : 0;
         const ticketMedio = totalOrder > 0 ? totalRevenue / totalOrder : 0;
 
         const validRows = arr26.filter(row => parseNumber(row?.Visitas) > 0);
@@ -121,30 +133,48 @@ export default function Dashboard() {
             const visArr = validRows.map(r => parseNumber(r.Visitas));
             const crArr = validRows.map(r => parseNumber(r['Indice de Conversao']));
             const rpcArr = validRows.map(r => parseNumber(r['Receita / Visitas']));
-            
+
+            const vuArr = validRows.map(r => parseNumber(r['Visitantes unicos']));
+            const crVuArr = validRows.map(r => parseNumber(r['Indice de Conversao VU']));
+            const rvArr = validRows.map(r => parseNumber(r['Receita / Visitante']));
+
             const nextVis = forecastNext(visArr);
             const nextCr = forecastNext(crArr);
             const nextRpc = forecastNext(rpcArr);
+
+            const nextVu = forecastNext(vuArr);
+            const nextCrVu = forecastNext(crVuArr);
+            const nextRv = forecastNext(rvArr);
 
             const lastRow = validRows[validRows.length - 1];
             const lastVis = parseNumber(lastRow.Visitas);
             const lastCr = parseNumber(lastRow['Indice de Conversao']);
             const lastRpc = parseNumber(lastRow['Receita / Visitas']);
 
+            const lastVu = parseNumber(lastRow['Visitantes unicos']);
+            const lastCrVu = parseNumber(lastRow['Indice de Conversao VU']);
+            const lastRv = parseNumber(lastRow['Receita / Visitante']);
+
             forecast = {
-                nextWeekLabel: `W${String(validRows.length + 1).padStart(2,'0')}`,
+                nextWeekLabel: `W${String(validRows.length + 1).padStart(2, '0')}`,
                 visitas: nextVis,
                 cr: nextCr,
                 rpc: nextRpc,
+                vu: nextVu,
+                crVu: nextCrVu,
+                rv: nextRv,
                 trends: {
                     visitas: nextVis >= lastVis ? 'up' : 'down',
                     cr: nextCr >= lastCr ? 'up' : 'down',
-                    rpc: nextRpc >= lastRpc ? 'up' : 'down'
+                    rpc: nextRpc >= lastRpc ? 'up' : 'down',
+                    vu: nextVu >= lastVu ? 'up' : 'down',
+                    crVu: nextCrVu >= lastCrVu ? 'up' : 'down',
+                    rv: nextRv >= lastRv ? 'up' : 'down'
                 }
             };
         }
 
-        return { sum25, sum26, diff, pct, totalOrder, ticketMedio, forecast, startCoverage: actualStart + 1, endCoverage: actualEnd + 1 };
+        return { sum25, sum26, diff, pct, vuSum25, vuSum26, vuDiff, vuPct, totalOrder, ticketMedio, forecast, startCoverage: actualStart + 1, endCoverage: actualEnd + 1 };
     }, [data, startWeek, endWeek, currentPage]);
 
     const generateOverlap = (metricField, weightedByVisits = false) => {
@@ -154,18 +184,18 @@ export default function Dashboard() {
         const weightedSums = { '2024': 0, '2025': 0, '2026': 0 };
 
         let maxLen = 0;
-        YEARS.forEach(y => { maxLen = Math.max(maxLen, (data[getTabName('Total CE_MX ', y)]||[]).length); });
-        
-        for(let i=0; i<maxLen; i++) {
+        YEARS.forEach(y => { maxLen = Math.max(maxLen, (data[getTabName('Total CE_MX ', y)] || []).length); });
+
+        for (let i = 0; i < maxLen; i++) {
             if (!isWeekInRange(i)) continue;
-            const row = { name: `W${String(i+1).padStart(2, '0')}` };
-            
+            const row = { name: `W${String(i + 1).padStart(2, '0')}` };
+
             YEARS.forEach(y => {
                 if (selectedYears.has(y)) {
                     const arr = data[getTabName('Total CE_MX ', y)] || [];
                     const val = parseNumber(arr[i]?.[metricField]);
                     row[y] = val;
-                    
+
                     if (weightedByVisits) {
                         const v = parseNumber(arr[i]?.Visitas);
                         weightedSums[y] += (val * v);
@@ -181,7 +211,7 @@ export default function Dashboard() {
         if (weightedByVisits) {
             YEARS.forEach(y => { aggResult[y] = visitWeights[y] > 0 ? weightedSums[y] / visitWeights[y] : 0; });
         }
-        
+
         return { chart: result, agg: aggResult };
     };
 
@@ -194,13 +224,16 @@ export default function Dashboard() {
             CR: parseNumber(row['Indice de Conversao']),
             Revenue: parseNumber(row.Revenue),
             RPC: parseNumber(row['Receita / Visitas']),
-            Order: parseNumber(row.Order)
+            Order: parseNumber(row.Order),
+            VU: parseNumber(row['Visitantes unicos']),
+            CRVU: parseNumber(row['Indice de Conversao VU']),
+            RV: parseNumber(row['Receita / Visitante'])
         }));
     }, [data, startWeek, endWeek, currentPage]);
 
     const handleSaveNote = async () => {
         try {
-            await saveInsights(note);
+            await saveInsights({ [currentNoteKey]: currentNoteVal });
             setIsEditingNote(false);
         } catch (e) {
             alert('Erro ao salvar insights no servidor.');
@@ -209,13 +242,13 @@ export default function Dashboard() {
 
     const handleDeleteNote = async () => {
         const password = window.prompt('Para excluir permanentemente, digite a senha de autorização:');
-        if (password === null) return; 
-        
+        if (password === null) return;
+
         try {
             console.log('Solicitando exclusão com senha...');
-            await deleteInsights(password);
+            await deleteInsights(password, currentNoteKey);
             console.log('Exclusão concluída com sucesso.');
-            setNote('');
+            setNotesData(prev => ({ ...prev, [currentNoteKey]: '' }));
             setIsEditingNote(false);
         } catch (e) {
             console.error('Falha na exclusão:', e);
@@ -233,56 +266,109 @@ export default function Dashboard() {
     const renderKPIs = () => {
         if (currentPage === 1 || currentPage === 3) {
             return (
-                <div className="cards-row">
-                    <div className="ytd-card glass">
-                        <div>
-                            <h3>Total Visitas YTD 25</h3>
-                            <div className="val">{formatNum(stats.sum25)}</div>
-                            <span>(W{String(stats.startCoverage).padStart(2,'0')} à W{String(stats.endCoverage).padStart(2,'0')})</span>
-                        </div>
-                        <div>
-                            <h3>VS YTD 26 Variation</h3>
-                            <div className={`diff ${stats.diff >= 0 ? 'positive' : 'negative'}`}>
-                                {stats.diff > 0 ? '+' : ''}{formatNum(stats.diff)} ({formatDec(stats.pct)}%)
+                <div className="kpi-group">
+                    <div className="cards-row">
+                        <div className="ytd-card glass">
+                            <div>
+                                <h3>Total Visitas YTD 25</h3>
+                                <div className="val">{formatNum(stats.sum25)}</div>
+                                <span>(W{String(stats.startCoverage).padStart(2, '0')} à W{String(stats.endCoverage).padStart(2, '0')})</span>
+                            </div>
+                            <div>
+                                <h3>VS YTD 26 Variation</h3>
+                                <div className={`diff ${stats.diff >= 0 ? 'positive' : 'negative'}`}>
+                                    {stats.diff > 0 ? '+' : ''}{formatNum(stats.diff)} ({formatDec(stats.pct)}%)
+                                </div>
+                            </div>
+                            <div>
+                                <h3>Total Visitas YTD 26</h3>
+                                <div className="val">{formatNum(stats.sum26)}</div>
+                                <span>(W{String(stats.startCoverage).padStart(2, '0')} à W{String(stats.endCoverage).padStart(2, '0')})</span>
                             </div>
                         </div>
-                        <div>
-                            <h3>Total Visitas YTD 26</h3>
-                            <div className="val">{formatNum(stats.sum26)}</div>
-                            <span>(W{String(stats.startCoverage).padStart(2,'0')} à W{String(stats.endCoverage).padStart(2,'0')})</span>
-                        </div>
+                        {stats.forecast && (
+                            <div className="ytd-card forecast glass">
+                                <h3 className="accent-label">🔥 Tendência 2026 (Próxima: {stats.forecast.nextWeekLabel})</h3>
+                                <div className="forecast-grid">
+                                    <div>
+                                        <span className="label">VISITAS</span>
+                                        <div className="val">{formatNum(stats.forecast.visitas)}</div>
+                                        <div className={`trend-status ${stats.forecast.trends.visitas}`}>
+                                            <span className="bullet">{stats.forecast.trends.visitas === 'up' ? '▲' : '▼'}</span>
+                                            <span className="w-comp">(W-1)</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span className="label">CONVERSÃO</span>
+                                        <div className="val">{formatPct(stats.forecast.cr)}</div>
+                                        <div className={`trend-status ${stats.forecast.trends.cr}`}>
+                                            <span className="bullet">{stats.forecast.trends.cr === 'up' ? '▲' : '▼'}</span>
+                                            <span className="w-comp">(W-1)</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span className="label">REC / VISITAS</span>
+                                        <div className="val">{formatMon(stats.forecast.rpc)}</div>
+                                        <div className={`trend-status ${stats.forecast.trends.rpc}`}>
+                                            <span className="bullet">{stats.forecast.trends.rpc === 'up' ? '▲' : '▼'}</span>
+                                            <span className="w-comp">(W-1)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    {stats.forecast && (
-                        <div className="ytd-card forecast glass">
-                            <h3 className="accent-label">🔥 Tendência 2026 (Próxima: {stats.forecast.nextWeekLabel})</h3>
-                            <div className="forecast-grid">
-                                <div>
-                                    <span className="label">VISITAS</span>
-                                    <div className="val">{formatNum(stats.forecast.visitas)}</div>
-                                    <div className={`trend-status ${stats.forecast.trends.visitas}`}>
-                                        <span className="bullet">{stats.forecast.trends.visitas === 'up' ? '▲' : '▼'}</span>
-                                        <span className="w-comp">(W-1)</span>
-                                    </div>
+                    <div className="cards-row" style={{ marginTop: '15px' }}>
+                        <div className="ytd-card glass">
+                            <div>
+                                <h3>Total Visitantes YTD 25</h3>
+                                <div className="val">{formatNum(stats.vuSum25)}</div>
+                                <span>(W{String(stats.startCoverage).padStart(2, '0')} à W{String(stats.endCoverage).padStart(2, '0')})</span>
+                            </div>
+                            <div>
+                                <h3>VS YTD 26 Variation</h3>
+                                <div className={`diff ${stats.vuDiff >= 0 ? 'positive' : 'negative'}`}>
+                                    {stats.vuDiff > 0 ? '+' : ''}{formatNum(stats.vuDiff)} ({formatDec(stats.vuPct)}%)
                                 </div>
-                                <div>
-                                    <span className="label">CONVERSÃO</span>
-                                    <div className="val">{formatPct(stats.forecast.cr)}</div>
-                                    <div className={`trend-status ${stats.forecast.trends.cr}`}>
-                                        <span className="bullet">{stats.forecast.trends.cr === 'up' ? '▲' : '▼'}</span>
-                                        <span className="w-comp">(W-1)</span>
+                            </div>
+                            <div>
+                                <h3>Total Visitantes YTD 26</h3>
+                                <div className="val">{formatNum(stats.vuSum26)}</div>
+                                <span>(W{String(stats.startCoverage).padStart(2, '0')} à W{String(stats.endCoverage).padStart(2, '0')})</span>
+                            </div>
+                        </div>
+                        {stats.forecast && (
+                            <div className="ytd-card forecast glass">
+                                <h3 className="accent-label">🔥 Tendência VU 2026 (Próxima: {stats.forecast.nextWeekLabel})</h3>
+                                <div className="forecast-grid">
+                                    <div>
+                                        <span className="label">VISITANTES ÚNICOS</span>
+                                        <div className="val">{formatNum(stats.forecast.vu)}</div>
+                                        <div className={`trend-status ${stats.forecast.trends.vu}`}>
+                                            <span className="bullet">{stats.forecast.trends.vu === 'up' ? '▲' : '▼'}</span>
+                                            <span className="w-comp">(W-1)</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div>
-                                    <span className="label">RECEITA / VISITAS</span>
-                                    <div className="val">{formatMon(stats.forecast.rpc)}</div>
-                                    <div className={`trend-status ${stats.forecast.trends.rpc}`}>
-                                        <span className="bullet">{stats.forecast.trends.rpc === 'up' ? '▲' : '▼'}</span>
-                                        <span className="w-comp">(W-1)</span>
+                                    <div>
+                                        <span className="label">CONVERSÃO VU</span>
+                                        <div className="val">{formatPct(stats.forecast.crVu)}</div>
+                                        <div className={`trend-status ${stats.forecast.trends.crVu}`}>
+                                            <span className="bullet">{stats.forecast.trends.crVu === 'up' ? '▲' : '▼'}</span>
+                                            <span className="w-comp">(W-1)</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <span className="label">REC / VISITANTE</span>
+                                        <div className="val">{formatMon(stats.forecast.rv)}</div>
+                                        <div className={`trend-status ${stats.forecast.trends.rv}`}>
+                                            <span className="bullet">{stats.forecast.trends.rv === 'up' ? '▲' : '▼'}</span>
+                                            <span className="w-comp">(W-1)</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             );
         } else {
@@ -318,52 +404,50 @@ export default function Dashboard() {
                 </nav>
             </header>
 
+            <div className="slicer-container glass" style={{ marginBottom: '2rem' }}>
+                <div className="slicer-row">
+                    <div className="slicer-col">
+                        <label>Slicer: Anos</label>
+                        <div className="btn-group">
+                            {YEARS.map(y => (
+                                <button key={y} onClick={() => toggleYear(y)} className={selectedYears.has(y) ? 'active' : ''}>{y}</button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="slicer-col">
+                        <label>Range (Semana Inicial)</label>
+                        <select className="custom-select" value={startWeek} onChange={(e) => setStartWeek(e.target.value)}>
+                            {ALL_WEEKS.map((w, i) => <option key={`s-${i}`} value={i}>{w}</option>)}
+                        </select>
+                    </div>
+                    <div className="slicer-col">
+                        <label>Range (Semana Final)</label>
+                        <select className="custom-select" value={endWeek} onChange={(e) => setEndWeek(e.target.value)}>
+                            {ALL_WEEKS.map((w, i) => <option key={`e-${i}`} value={i}>{w}</option>)}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             {renderKPIs()}
 
-            <div className="main-controls-row">
-                <div className="slicer-container glass">
-                    <div className="slicer-row">
-                        <div className="slicer-col">
-                            <label>Slicer: Anos</label>
-                            <div className="btn-group">
-                                {YEARS.map(y => (
-                                    <button key={y} onClick={() => toggleYear(y)} className={selectedYears.has(y) ? 'active' : ''}>{y}</button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="slicer-col">
-                            <label>Range (Semana Inicial)</label>
-                            <select className="custom-select" value={startWeek} onChange={(e) => setStartWeek(e.target.value)}>
-                                {ALL_WEEKS.map((w, i) => <option key={`s-${i}`} value={i}>{w}</option>)}
-                            </select>
-                        </div>
-                        <div className="slicer-col">
-                            <label>Range (Semana Final)</label>
-                            <select className="custom-select" value={endWeek} onChange={(e) => setEndWeek(e.target.value)}>
-                                {ALL_WEEKS.map((w, i) => <option key={`e-${i}`} value={i}>{w}</option>)}
-                            </select>
-                        </div>
+            <div className="notes-container glass" style={{ marginBottom: '2rem', width: '100%', boxSizing: 'border-box' }}>
+                <div className="notes-header">
+                    <h3>📋 Analise de Dados e Insights </h3>
+                    <div className="notes-actions">
+                        {!isEditingNote ? (
+                            <button onClick={() => setIsEditingNote(true)} className="btn-blue">Adicionar/Editar</button>
+                        ) : (
+                            <button onClick={handleSaveNote} className="btn-green">Salvar</button>
+                        )}
+                        <button onClick={handleDeleteNote} className="btn-red">Excluir</button>
                     </div>
                 </div>
-
-                <div className="notes-container glass">
-                    <div className="notes-header">
-                        <h3>📋 Insights</h3>
-                        <div className="notes-actions">
-                            {!isEditingNote ? (
-                                <button onClick={() => setIsEditingNote(true)} className="btn-blue">Adicionar/Editar</button>
-                            ) : (
-                                <button onClick={handleSaveNote} className="btn-green">Salvar</button>
-                            )}
-                            <button onClick={handleDeleteNote} className="btn-red">Excluir</button>
-                        </div>
-                    </div>
-                    {isEditingNote ? (
-                        <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Digite suas observações aqui..." className="notes-textarea" />
-                    ) : (
-                        <div className="notes-display">{note || <span className="placeholder">Nenhum insight...</span>}</div>
-                    )}
-                </div>
+                {isEditingNote ? (
+                    <textarea value={currentNoteVal} onChange={(e) => setNotesData(prev => ({ ...prev, [currentNoteKey]: e.target.value }))} placeholder={`Digite suas observações para a Página ${currentPage} aqui...`} className="notes-textarea" />
+                ) : (
+                    <div className="notes-display">{currentNoteVal || <span className="placeholder">Nenhum insight para a Página {currentPage}...</span>}</div>
+                )}
             </div>
 
             <div className="charts-grid-container">
@@ -373,6 +457,9 @@ export default function Dashboard() {
                         <ChartCard title="2. Índice de Conversão (TOTAL CE+MX)" data={generateOverlap('Indice de Conversao', true)} formatter={formatPct} />
                         <ChartCard title="3. Receita (TOTAL CE+MX)" data={generateOverlap('Revenue')} formatter={formatMon} />
                         <ChartCard title="4. Receita / Visitas (Total CE+MX)" data={generateOverlap('Receita / Visitas', true)} formatter={formatMon} />
+                        <ChartCard title="5. Visitantes (Total CE+MX)" data={generateOverlap('Visitantes unicos')} />
+                        <ChartCard title="6. Indice Conversão (VU) (Total CE+MX)" data={generateOverlap('Indice de Conversao VU', true)} formatter={formatPct} />
+                        <ChartCard title="7. Receita / Visitantes (Total CE+MX)" data={generateOverlap('Receita / Visitante', true)} formatter={formatMon} />
                     </>
                 )}
                 {currentPage === 2 && (
@@ -381,6 +468,8 @@ export default function Dashboard() {
                         <ComposedCard title="2. Análise 2026: Visitas vs Receita" data={composedData} metricKey="Revenue" metricName="Receita" formatter={formatMon} />
                         <ComposedCard title="3. Análise 2026: Visitas vs Receita / Visitas" data={composedData} metricKey="RPC" metricName="Receita / Visitas" formatter={formatMon} />
                         <ComposedCard title="4. Análise 2026: Visitas vs Pedidos" data={composedData} metricKey="Order" metricName="Pedidos" formatter={formatNum} />
+                        <ComposedCard title="5. Análise 2026: Visitantes vs Índice de Conversão (VU)" data={composedData} metricKey="CRVU" metricName="Conversão VU" formatter={formatPct} />
+                        <ComposedCard title="6. Análise 2026: Visitantes vs Receita / Visitante" data={composedData} metricKey="RV" metricName="Receita / Visitante" formatter={formatMon} />
                     </>
                 )}
                 {currentPage === 3 && (
@@ -393,6 +482,9 @@ export default function Dashboard() {
                         <ComposedCard title="6. Análise 2026: Visitas vs Receita / Visitas (Orgânico)" data={composedData} metricKey="RPC" metricName="Receita / Visitas" formatter={formatMon} />
                         <ComposedCard title="7. Análise 2026: Visitas vs Receita (Orgânico)" data={composedData} metricKey="Revenue" metricName="Receita" formatter={formatMon} />
                         <ComposedCard title="8. Análise 2026: Visitas vs Pedidos (Orgânico)" data={composedData} metricKey="Order" metricName="Pedidos" formatter={formatNum} />
+                        <ChartCard title="9. Visitantes (Orgânicos CE+MX)" data={generateOverlap('Visitantes unicos')} />
+                        <ChartCard title="10. Indice Conversão (VU) (Orgânicos CE+MX)" data={generateOverlap('Indice de Conversao VU', true)} formatter={formatPct} />
+                        <ChartCard title="11. Receita / Visitantes (Orgânicos CE+MX)" data={generateOverlap('Receita / Visitante', true)} formatter={formatMon} />
                     </>
                 )}
             </div>
